@@ -1,4 +1,4 @@
-# CPSC_481-Final_Project
+# CPSC 481 - Final Project
 
 Project idea: Mastermind
 
