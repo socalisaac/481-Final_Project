@@ -21,21 +21,30 @@ random.seed(os.urandom(32))  # create a seed so our "random results" are more co
 
 class Mastermind(game):
     def __init__(self):
-        print("create mastermind game")
-        self.Colors = []    # Create an Empty List of Potential "Colors" which will be represented by integers (ex 1-6)
-        self.turn = 0       # initialize turn to 0 at the start of a new game
+        self.printMastermindLogo()
+
+        self.Colors = []        # Create an Empty List of Potential "Colors" which will be represented by integers (ex 1-6)
+        self.turn = 0           # initialize turn to 0 at the start of a new game
         self.currentGuess = []  # create an initial code for the genetic mutation to begin working with 
-        self.guesses = []   # a list of attempted guesses and their respective result stored in tuple (guess,result)
-        self.newGeneration = []
+        self.guesses = []       # a list of attempted guesses and their respective result stored in tuple (guess,result)
+        self.newGeneration = [] # a list of the new generation of guesses
+
+    def printMastermindLogo(self):
+        print("\n __  __           _                      _           _ ")
+        print("|  \/  |         | |                    (_)         | |")
+        print("| \  / | __ _ ___| |_ ___ _ __ _ __ ___  _ _ __   __| |")
+        print("| |\/| |/ _` / __| __/ _ \ '__| '_ ` _ \| | '_ \ / _` |")
+        print("| |  | | (_| \__ \ ||  __/ |  | | | | | | | | | | (_| |")
+        print("|_|  |_|\__,_|___/\__\___|_|  |_| |_| |_|_|_| |_|\__,_|\n\n")                                 
     
     def manualPlay(self):
         self.turn += 1
 
         print()
-        print("The Current Round is: " , self.turn)
+        print("Round #" , self.turn)
         print("The computer has guessed: ", self.currentGuess)
-        correctColorLocation = input("Please enter the number of correct color and location: ")
-        correctColor = input("Please enter the number of correct numbr of colors not in the right location: ")
+        correctColorLocation = input("Enter the number of correct COLORS and locations: ")
+        correctColor = input("Enter the number of correct COLORS that are not in the right locations: ")
         print()
 
         result = (int(correctColorLocation), int(correctColor))
@@ -74,7 +83,7 @@ class Mastermind(game):
         for code in copyaiChoice:
             if code in copyRightChoice:
                 placeFalse = placeFalse + 1
-                for i,c in enumerate(copyRightChoice):
+                for i, c in enumerate(copyRightChoice):
                     if c == code:
                         copyRightChoice[i] = -3
 
@@ -132,7 +141,6 @@ class Mastermind(game):
     def mutate(self, code, allAvailableNumbers):
         i = random.randint(0, SLOTS-1)
         v = random.choice(allAvailableNumbers)
-        # v = random.randint(1, len(self.Colors))
         code[i] = v
         return code
 
@@ -149,7 +157,7 @@ class Mastermind(game):
 
         return code
 
-    def geneticEvolution(self, popSize, generations, eliteRatio=ELITE_RATIO):
+    def geneticEvolution(self, popSize, generations, eliteRatio = ELITE_RATIO):
         '''
         Function implementing the genetic algorithm to guess the right color code
         for MasterMind game
@@ -168,17 +176,19 @@ class Mastermind(game):
 
         # We generate the first population of chromosomes, in a randomized way
         # in order to reduce probability of duplicates
+        
+        # Generate a list of Number we know are not correct
         badNumbers = []
         for guess in self.guesses:
             if guess[1] == (0,0):
-               
                 badNumbers.append(guess[0][0])
                 badNumbers.append(guess[0][1])
                 badNumbers.append(guess[0][2])
                 badNumbers.append(guess[0][3])
 
         allAvailableNumbers = self.Colors
-
+        
+        # Remove all the known bad numbers from the possible generation list
         for num in badNumbers:
             if num in allAvailableNumbers:
                 allAvailableNumbers.remove(num)
@@ -187,30 +197,19 @@ class Mastermind(game):
             population = [[random.randint(self.guesses[0][0][0],self.guesses[0][0][1],self.guesses[0][0][2],self.guesses[0][0][3]) for i in range(SLOTS)]\
                                    for j in range(popSize)]
         else:
-
             population = [[random.choice(allAvailableNumbers) for i in range(SLOTS)]\
                                    for j in range(popSize)]
-
-            # population = [[random.randint(1, len(self.Colors)) for i in range(SLOTS)]\
-            #                        for j in range(popSize)]
-
-
-        # population = [[random.randint(1, len(self.Colors)) for i in range(SLOTS)]\
-        #                            for j in range(popSize)]
-
 
         # Set of our favorite choices for the next play (Elite Group Ei)
         chosenOnes = []
         h = 1
         k = 0
         while len(chosenOnes) <= popSize and h <= generations:
-
                 # Prepare the population of sons who will inherit from the parent
                 # generation using a natural selection strategy
                 sons = []
 
                 for i in range(len(population)):
-
                         # If we find two parents for the son, we pick the son
                         if i == len(population) - 1:
                             sons.append(population[i])
@@ -218,11 +217,7 @@ class Mastermind(game):
 
                         # Apply cross over
 
-                        # print(population[i], " ", population[i+1])
-
                         son = self.crossover(population[i], population[i+1])
-
-                        # print(son)
 
                         # Apply mutation after cross over
                         if random.random() <= CROSSOVER_THEN_MUTATION_PROBABILITY:
@@ -284,7 +279,7 @@ class Mastermind(game):
 
                 # Prepare the parent population for the next generation based
                 # on the current generation
-                population=[]
+                population = []
                 population.extend(eligibles)
 
 
@@ -301,8 +296,6 @@ class Mastermind(game):
 
                 h = h + 1
 
-        # print(len(chosenOnes))
-
         mastermindGame.newGeneration = chosenOnes
                 
         return chosenOnes
@@ -312,15 +305,19 @@ class Mastermind(game):
 
     def removeDuplicates(self):
         while self.currentGuess in [c for (c, r) in self.guesses]:
-            # print('DUPLICAAAAAAAAAATE')
-            # code = eligibles.pop()
             self.updateCurrentGuess()    
     
     def lenColors(self):
-            if len(self.Colors) == 0:
-                inp = input("How many Colors would you like to play with? (0-10): ")
-                self.Colors.extend(range(1, int(inp) + 1))
-                self.getFirstGuess()
+            
+            inp = int(input("How many COLORS would you like to play with? (2-10): "))
+                
+            while inp < 2 or inp > 10:
+                 inp = int(input("\nPlease re-enter the number of COLORS you like to play with, and make sure the value is between 2 and 10: "))
+
+            self.Colors.extend(range(1, int(inp) + 1))
+            self.getFirstGuess()
+
+            
 
     def getFirstGuess(self):
             i = random.randint(1,len(self.Colors))
@@ -343,10 +340,23 @@ class Mastermind(game):
                     xCounter += 1
                     firstGuess.append(x)
             
-            # if SLOTS % 2 == 1:
-            #     firstGuess.append(random.choice(choices))
 
-            self.currentGuess = firstGuess    
+            self.currentGuess = firstGuess
+
+    def printEndGame(self):
+        print("\nThe computer has crack your code!")
+        print("\nYour code was ",self.currentGuess)
+        print("\n Thank you for playing!\n\n")
+
+
+        print(" _____                           ____                 ")
+        print("/ ____|                         / __ \                ")
+        print("| |  __  __ _ _ __ ___   ___   | |  | |_   _____ _ __ ") 
+        print("| | |_ |/ _` | '_ ` _ \ / _ \  | |  | \ \ / / _ \ '__|") 
+        print("| |__| | (_| | | | | | |  __/  | |__| |\ V /  __/ |   ") 
+        print("\______|\__,_|_| |_| |_|\___|   \____/  \_/ \___|_|    \n\n")
+                                                       
+
 
 if __name__ == '__main__':
     mastermindGame = Mastermind()
@@ -354,17 +364,10 @@ if __name__ == '__main__':
     
     random.seed(os.urandom(32))
 
-    # def scoref(trial):
-    #         return fitnessScore(trial, code, guesses, SLOTS=4)
-
-    # result=play(code, turn, TOGUESS)
     result = mastermindGame.manualPlay()
 
     while result != (SLOTS,0):
-        # print("HERERE")
-        # eligibles = geneticEvolution(MAX_POP_SIZE, MAX_GENERATIONS, scoref, SLOTS=4)
         mastermindGame.geneticEvolution(MAX_POP_SIZE, MAX_GENERATIONS)
-        # print('Ei', len(eligibles))
 
         while len(mastermindGame.newGeneration) == 0:
             print('is 0')
@@ -375,8 +378,7 @@ if __name__ == '__main__':
 
         mastermindGame.removeDuplicates()
 
-        result=mastermindGame.manualPlay()
+        result = mastermindGame.manualPlay()
 
         if result == (SLOTS,0):
-            print('WIIIIIIN')
-            print(mastermindGame.currentGuess, result)
+            mastermindGame.printEndGame()
