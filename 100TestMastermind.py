@@ -3,11 +3,6 @@ import random
 import sys
 import xlsxwriter as exelWriter
 
-
-from game import *
-from genetic import *
-from variables import *
-
 MAX_POP_SIZE = 60
 MAX_GENERATIONS = 100
 

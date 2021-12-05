@@ -3,9 +3,6 @@ import random
 import sys
 from os import system
 
-from game import *
-from variables import *
-
 MAX_POP_SIZE = 60
 MAX_GENERATIONS = 100
 
