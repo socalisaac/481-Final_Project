@@ -16,7 +16,7 @@ ELITE_RATIO=  .4
 SLOTS = 4 # Number of "Colors" in the code [1,2,3,4] by default
 random.seed(os.urandom(32))  # create a seed so our "random results" are more consistent between plays
 
-class Mastermind(game):
+class Mastermind():
     def __init__(self):
         self.printMastermindLogo()
 
