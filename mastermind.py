@@ -1,9 +1,9 @@
 import os
 import random
 import sys
+from os import system
 
 from game import *
-from genetic import *
 from variables import *
 
 MAX_POP_SIZE = 60
@@ -30,6 +30,7 @@ class Mastermind(game):
         self.newGeneration = [] # a list of the new generation of guesses
 
     def printMastermindLogo(self):
+        system('cls')
         print("\n __  __           _                      _           _ ")
         print("|  \/  |         | |                    (_)         | |")
         print("| \  / | __ _ ___| |_ ___ _ __ _ __ ___  _ _ __   __| |")
@@ -43,10 +44,14 @@ class Mastermind(game):
         print()
         print("Round #" , self.turn)
         print("The computer has guessed: ", self.currentGuess)
-        correctColorLocation = input("Enter the number of correct COLORS and locations: ")
-        correctColor = input("Enter the number of correct COLORS that are not in the right locations: ")
+        correctColorLocation = int(input("Enter the number of correct COLORS and locations: "))
+        correctColor = int(input("Enter the number of correct COLORS that are not in the right locations: "))
+        while correctColorLocation > SLOTS or correctColor > SLOTS:
+            print("\n\nIncorrect Input:")
+            correctColorLocation = int(input("Please enter a number between: (0-" + str(SLOTS) + '): '))
+            correctColor = int(input("Please enter a number between: (0-"+ str(SLOTS) +'): '))
         print()
-
+        
         result = (int(correctColorLocation), int(correctColor))
 
         self.guesses.append((self.currentGuess, result))
@@ -136,6 +141,7 @@ class Mastermind(game):
                 newcode.append(code1[i])
             else:
                 newcode.append(code2[i])
+                
         return newcode
 
     def mutate(self, code, allAvailableNumbers):
@@ -282,7 +288,6 @@ class Mastermind(game):
                 population = []
                 population.extend(eligibles)
 
-
                 # We fill the rest of the population with random codes up to popSize
                 j = len(eligibles)
                 while j < popSize:
@@ -317,8 +322,6 @@ class Mastermind(game):
             self.Colors.extend(range(1, int(inp) + 1))
             self.getFirstGuess()
 
-            
-
     def getFirstGuess(self):
             i = random.randint(1,len(self.Colors))
             x = random.randint(1,len(self.Colors))
@@ -340,45 +343,47 @@ class Mastermind(game):
                     xCounter += 1
                     firstGuess.append(x)
             
-
             self.currentGuess = firstGuess
 
-    def printEndGame(self):
-        print("\nThe computer has crack your code!")
-        print("\nYour code was ",self.currentGuess)
-        print("\n Thank you for playing!\n\n")
-
-
-        print(" _____                           ____                 ")
-        print("/ ____|                         / __ \                ")
-        print("| |  __  __ _ _ __ ___   ___   | |  | |_   _____ _ __ ") 
-        print("| | |_ |/ _` | '_ ` _ \ / _ \  | |  | \ \ / / _ \ '__|") 
-        print("| |__| | (_| | | | | | |  __/  | |__| |\ V /  __/ |   ") 
-        print("\______|\__,_|_| |_| |_|\___|   \____/  \_/ \___|_|    \n\n")
-                                                       
-
-
-if __name__ == '__main__':
-    mastermindGame = Mastermind()
-    mastermindGame.lenColors()
-    
-    random.seed(os.urandom(32))
-
-    result = mastermindGame.manualPlay()
-
-    while result != (SLOTS,0):
-        mastermindGame.geneticEvolution(MAX_POP_SIZE, MAX_GENERATIONS)
-
-        while len(mastermindGame.newGeneration) == 0:
-            print('is 0')
+    def endGame(self):
+        # print("------------------------------------------------------\n")
         
-            mastermindGame.geneticEvolution(MAX_POP_SIZE*2, MAX_GENERATIONS/2)
-    
-        mastermindGame.updateCurrentGuess()
+        print("The computer has cracked your code!")
+        print("\nYour code was ",self.currentGuess)
 
-        mastermindGame.removeDuplicates()
+        return input("\nWould you like to play again? (Y/N): ")
+        
+                                                       
+if __name__ == '__main__':
+    play = 'Y'
+    while (play == 'Y' or play == 'y' or play == 'Yes' or play == 'yes'):
+        mastermindGame = Mastermind()
+        mastermindGame.lenColors()
+        
+        random.seed(os.urandom(32))
 
         result = mastermindGame.manualPlay()
 
-        if result == (SLOTS,0):
-            mastermindGame.printEndGame()
+        while result != (SLOTS,0):
+            mastermindGame.geneticEvolution(MAX_POP_SIZE, MAX_GENERATIONS)
+
+            while len(mastermindGame.newGeneration) == 0:
+                print('is 0')
+            
+                mastermindGame.geneticEvolution(MAX_POP_SIZE*2, MAX_GENERATIONS/2)
+        
+            mastermindGame.updateCurrentGuess()
+
+            mastermindGame.removeDuplicates()
+
+            result = mastermindGame.manualPlay()
+            
+        play = mastermindGame.endGame()
+    
+    print("\n _____                           ____                 ")
+    print("/ ____|                         / __ \                ")
+    print("| |  __  __ _ _ __ ___   ___   | |  | |_   _____ _ __ ") 
+    print("| | |_ |/ _` | '_ ` _ \ / _ \  | |  | \ \ / / _ \ '__|") 
+    print("| |__| | (_| | | | | | |  __/  | |__| |\ V /  __/ |   ") 
+    print("\______|\__,_|_| |_| |_|\___|   \____/  \_/ \___|_|   ")
+    print("\nThank you for playing!")

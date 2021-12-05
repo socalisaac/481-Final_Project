@@ -1,0 +1,17 @@
+COLORS=[]
+TOGUESS = [1,1,1,1]
+
+
+MAX_POP_SIZE = 60
+MAX_GENERATIONS = 100
+
+CROSSOVER_PROBABILITY = 0.5
+CROSSOVER_THEN_MUTATION_PROBABILITY = 0.03
+PERMUTATION_PROBABILITY = 0.03
+INVERSION_PROBABILITY = 0.02
+
+ELITE_RATIO=0.4
+
+
+WEIGHT_BLACK = 5 # weight of well placed colors we give them a slightly better weight
+WEIGHT_WHITE = 3 # weight of bad placed colors
