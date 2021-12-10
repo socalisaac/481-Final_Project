@@ -1,20 +1,18 @@
 import os
 import random
-import sys
 from os import system
 
-MAX_POP_SIZE = 60
-MAX_GENERATIONS = 100
+# NOTE: This version of our Program will only work with the orignial game rules and settings. This means that the slot numeber WILL ALWAYS be equal to 4 and SHOULD NOT be changed.
+#       The Number of colors that can be play with are ranged from 2 - 10.
 
-CROSSOVER_PROBABILITY = 0.7
-CROSSOVER_THEN_MUTATION_PROBABILITY = 0.03
-PERMUTATION_PROBABILITY = 0.03
-INVERSION_PROBABILITY = 0.02
 
-ELITE_RATIO=  .4
-
-SLOTS = 4 # Number of "Colors" in the code [1,2,3,4] by default
-random.seed(os.urandom(32))  # create a seed so our "random results" are more consistent between plays
+MAX_POP_SIZE = 60                           # MAX number of valid candidates generated before Genetic evolution stops
+MAX_GENERATIONS = 100                       # MAX number of generations to create children before evolution stops
+CROSSOVER_PROBABILITY = 0.7                 # if random.random() returns > 0.7 , we will do a crossover on two parents
+CROSSOVER_THEN_MUTATION_PROBABILITY = 0.03  # if random.random() returns < 0.03 , we will do a crossover on two parents and then mutate the child
+PERMUTATION_PROBABILITY = 0.03              # if random.random() returns > 0.03 , we will do a permutation of the parent code
+SLOTS = 4                                   # Number of "Colors" in the code [1,2,3,4] by default 
+random.seed(os.urandom(32))                 # create a seed so our "random results" are more consistent between plays
 
 class Mastermind():
     def __init__(self):
@@ -36,6 +34,12 @@ class Mastermind():
         print("|_|  |_|\__,_|___/\__\___|_|  |_| |_| |_|_|_| |_|\__,_|\n\n")                                 
     
     def manualPlay(self):
+        
+        # manualPlay is for allowing a human to play agaist the computer.
+        # It asks the user what are the results of each guess the computer makese. 
+        # It Then returns the users input as a tuple.
+        
+              
         self.turn += 1
 
         print()
@@ -56,14 +60,13 @@ class Mastermind():
         return result
     
     def checkPlay(self, aiChoice, rightChoice):
-        '''
-        Returns number of good placements and bad placements from aiChoice
-        compared to rightChoice
-        Assert aiChoice and rightChoice with same length
-        '''
+    
+        # checkPlay creates a tuple score for the aiChoice compared to the rightChoice
+        # It then returns the score as a tuple.
+        
+        
         assert len(aiChoice) == len(rightChoice)
 
-        # local copy of color to guess as reference of already calculated colors
 
         copyRightChoice = []
         for code in rightChoice:
@@ -79,7 +82,7 @@ class Mastermind():
         for i in range(len(rightChoice)):
             if rightChoice[i] == aiChoice[i]:
                 placeTrue = placeTrue + 1
-                copyRightChoice[i] = -1
+                copyRightChoice[i] = -1     
                 copyaiChoice[i] = -2
 
         for code in copyaiChoice:
@@ -92,11 +95,13 @@ class Mastermind():
         return (placeTrue,placeFalse)
 
     def getDifference(self, trial, guess):
-        # The result AI guess obtained
-        guessResult = guess[1]
-
-        # The ai guess code
-        guessCode = guess[0]
+        # getDifference() is a function used mainly in our 100TestMastermind. It is a method
+        # of finding the number of white pegs (in the correct slots and correct color), and black pegs 
+        # (correct color but not in the right slot) for randomly-generated code variants of the game
+        # This function is not used in the user-Feedback version of the game, because the difference is
+        # the feedback the user provides ex (1,3) (4,0) etc: 
+        guessResult = guess[1] 
+        guessCode = guess[0]   
 
         # We assume `guess` is the color to guess
         # we then establish the score our `trial` color would obtain
@@ -111,27 +116,29 @@ class Mastermind():
         return tuple(dif)
 
     def fitnessScore(self, trial, code, guesses):
-        # Given a list of guesses (picked from elite generations),
-        # we build a list of difference score comparing our trial to
-        # each guess
+        # We score every individual child using the fitnessScore function,
+        # this score is what is calculated in the population score and determines
+        # which child is considered the "best candidate"
         differences = []
         for guess in guesses:
             differences.append(self.getDifference(trial, guess))
 
-        # Sum of well placed colors
-        sumBlackPinDifferences = 0
-        # Sum of wrong placed colors
-        sumWhitePinDifferences = 0
+        locationDifferences = 0
+        colorDifferences = 0
 
         for dif in differences:
-            sumBlackPinDifferences += dif[0]
-            sumWhitePinDifferences += dif[1]
+            locationDifferences += dif[0]
+            colorDifferences += dif[1]
 
-        # Final score
-        score = sumBlackPinDifferences + sumWhitePinDifferences
+        score = locationDifferences + colorDifferences
         return score
 
     def crossover(self, code1, code2):
+        
+        # crossover takes the parents (code1 and code2) and crosses their genetics with eachother 
+        # if the random.random() generates a value greater than the current CROSSOVER_PROBABILITY it will pull a gene
+        # from code1, else it will pull from code2. This will be done SLOTS times, which will then return the newcode.
+        
         newcode = []
         for i in range(SLOTS):
             if random.random() > CROSSOVER_PROBABILITY:
@@ -142,6 +149,12 @@ class Mastermind():
         return newcode
 
     def mutate(self, code, allAvailableNumbers):
+        
+        # mutate takes a code and all the allAvailableNumbers.
+        # it will then select a random spot in the code and 
+        # replace it with a random number from the allAvailableNumbers list.
+        # Tt will then return the modified code.
+        
         i = random.randint(0, SLOTS-1)
         v = random.choice(allAvailableNumbers)
         code[i] = v
@@ -160,22 +173,14 @@ class Mastermind():
 
         return code
 
-    def geneticEvolution(self, popSize, generations, eliteRatio = ELITE_RATIO):
-        '''
-        Function implementing the genetic algorithm to guess the right color code
-        for MasterMind game
-        We generate several populations of guesses using natural selection strategies
-        like crossover, mutation and permutation.
-        In this function, we assume our color code to guess as a chromosome.
-        The populations we generate are assimilated to sets of chromosomes for
-        which the nitrogenous bases are our color code
-        popSize: the maximum size of a population
-        generations: maxumum number of population generations
-        costfitness: function returning the fitness score of a chromosome (color code)
-        '''
-
+    def geneticEvolution(self, popSize, generations):
+        
+        
         # We generate the first population of chromosomes, in a randomized way
         # in order to reduce probability of duplicates
+        # we create a new list to hold our children called "sons" who will inherit from the parent codes
+        # generation using a natural selection strategy that is randomly selected.
+        
         
         # Generate a list of Number we know are not correct
         badNumbers = []
@@ -194,107 +199,86 @@ class Mastermind():
                 allAvailableNumbers.remove(num)
 
         if round == 1 and self.guesses[0][1] == (0,4):
-            population = [[random.randint(self.guesses[0][0][0],self.guesses[0][0][1],self.guesses[0][0][2],self.guesses[0][0][3]) for i in range(SLOTS)]\
-                                   for j in range(popSize)]
+            population = [[random.randint(self.guesses[0][0][0],self.guesses[0][0][1],self.guesses[0][0][2],self.guesses[0][0][3]) for _ in range(SLOTS)]\
+                                   for _ in range(popSize)]
         else:
-            population = [[random.choice(allAvailableNumbers) for i in range(SLOTS)]\
-                                   for j in range(popSize)]
+            population = [[random.choice(allAvailableNumbers) for _ in range(SLOTS)]\
+                                   for _ in range(popSize)]
 
-        # Set of our favorite choices for the next play (Elite Group Ei)
         chosenOnes = []
         h = 1
         k = 0
         while len(chosenOnes) <= popSize and h <= generations:
-                # Prepare the population of sons who will inherit from the parent
-                # generation using a natural selection strategy
                 sons = []
 
                 for i in range(len(population)):
-                        # If we find two parents for the son, we pick the son
                         if i == len(population) - 1:
                             sons.append(population[i])
                             break
 
                         # Apply cross over
-
                         son = self.crossover(population[i], population[i+1])
 
-                        # Apply mutation after cross over
+                        # Apply mutation after cross over if random.random() returns a value < .03
                         if random.random() <= CROSSOVER_THEN_MUTATION_PROBABILITY:
                                 son = self.mutate(son, allAvailableNumbers)
 
-                        # Apply mutation
+                        # Apply permutation individually from any parameter requirements
                         son = self.permute(son)
 
-                        # Add the son to the population
+                        # Add the genetically modified son to the population
                         sons.append(son)
 
-                # We link each son to a fitness score. The closest the score to
-                # Zero, the better chance our code is the right guess
+                # We link each son to a fitness score.
                 popScore = []
                 for son in sons:
-                    # popScore.append((costfitness(son), son))
                     popScore.append((self.fitnessScore(son, self.currentGuess, self.guesses), son))
 
-                # We order our sons population based on fitness score (increasing)
+                # We re-order our sons population based on fitness score
                 popScore = sorted(popScore, key=lambda x: x[0])
 
-                # We use the eliteRation parameter to choose an elite of chosen
-                # codes among the choices, imitating natural selection process
-                # NOTE: elite ratio is not currently used
-
-                # First we pick an eligible elite (Score is Zero)
+                # we create our eligibles list by iterating through our popScore list and appending eligible children that have scores = 0
+                # these are eligible codes that can produce results that are considered "better" than our previous (parent) guess. Though the overall
+                # scoring method we use to grade the children is a Maximum score in our FitnessScore(): this example uses a minimum score to compare how well each child
+                # compares to its parents results. 
                 eligibles = [(score, e) for (score, e) in popScore if score == 0]
 
                 if len(eligibles) == 0:
                     h = h + 1
                     continue
 
-                # Pick out the code from our eligible elite (score, choice) tuples
                 newEligibles = []
-                for (score, c) in eligibles:
+                for (_, c) in eligibles:
                     newEligibles.append(c)
                 eligibles = newEligibles
-
-                # We remove the eligible codes already included in the elite choices (Ei)
 
                 for code in eligibles:
                     if code in chosenOnes:
                         chosenOnes.remove(code)
+                        chosenOnes.append([random.choice(allAvailableNumbers) for _ in range(SLOTS)])
 
-                        # We replace the removed duplicate elite code with a random one
-                        chosenOnes.append([random.choice(allAvailableNumbers) for i in range(SLOTS)])
-                        # chosenOnes.append([random.randint(1, len(self.Colors)) for i in range(SLOTS)])
 
-                # We add the eligible elite to the elite set (Ei)
+                # Iiterate through eligible children
                 for eligible in eligibles:
-                    # Make sure we don't overflow our elite size (Ei <= popSize)
+                    # Make sure we don't overflow our MAX_POP_SIZE
                     if len(chosenOnes) == popSize:
                         break
 
-                    # If the eligible elite code is not already chosen, promote it
-                    # to the elite set (Ei)
                     if not eligible in chosenOnes:
                         chosenOnes.append(eligible)
 
-                # Prepare the parent population for the next generation based
-                # on the current generation
+                # Extends eligibiles for population
                 population = []
                 population.extend(eligibles)
 
                 # We fill the rest of the population with random codes up to popSize
                 j = len(eligibles)
                 while j < popSize:
-                    population.append([random.randint(1, len(self.Colors)) for i in range(SLOTS)])
+                    population.append([random.randint(1, len(self.Colors)) for _ in range(SLOTS)])
                     j = j + 1
 
-                # For each generation, we become more aggressive in choosing
-                # the best eligible codes. We become more selective
-                if not eliteRatio < 0.01:
-                    eliteRatio -= 0.01
-
                 h = h + 1
-
+        # We assign the list of "chosenOnes" as the newGeneration member variable of the mastermind class
         mastermindGame.newGeneration = chosenOnes
                 
         return chosenOnes
@@ -303,7 +287,7 @@ class Mastermind():
         self.currentGuess = self.newGeneration.pop()
 
     def removeDuplicates(self):
-        while self.currentGuess in [c for (c, r) in self.guesses]:
+        while self.currentGuess in [c for (c, _) in self.guesses]:
             self.updateCurrentGuess()    
     
     def lenColors(self):
@@ -339,9 +323,7 @@ class Mastermind():
             
             self.currentGuess = firstGuess
 
-    def endGame(self):
-        # print("------------------------------------------------------\n")
-        
+    def endGame(self):      
         print("The computer has cracked your code!")
         print("\nYour code was ",self.currentGuess)
 
@@ -362,8 +344,9 @@ if __name__ == '__main__':
             mastermindGame.geneticEvolution(MAX_POP_SIZE, MAX_GENERATIONS)
 
             while len(mastermindGame.newGeneration) == 0:
-                print('is 0')
-            
+                print('Computer Thinking 🤔' )
+                # This print statement simply means that a valid candidate was not found, so we will modify some of
+                # our parameters and attempt more rigorously generate children
                 mastermindGame.geneticEvolution(MAX_POP_SIZE*2, MAX_GENERATIONS/2)
         
             mastermindGame.updateCurrentGuess()
