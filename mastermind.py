@@ -164,14 +164,11 @@ class Mastermind():
         '''
         Function implementing the genetic algorithm to guess the right color code
         for MasterMind game
-
         We generate several populations of guesses using natural selection strategies
         like crossover, mutation and permutation.
-
         In this function, we assume our color code to guess as a chromosome.
         The populations we generate are assimilated to sets of chromosomes for
         which the nitrogenous bases are our color code
-
         popSize: the maximum size of a population
         generations: maxumum number of population generations
         costfitness: function returning the fitness score of a chromosome (color code)

@@ -2,6 +2,7 @@ import os
 import random
 import sys
 import xlsxwriter as exelWriter
+import time
 
 MAX_POP_SIZE = 60
 MAX_GENERATIONS = 100
@@ -16,7 +17,7 @@ ELITE_RATIO=  .4
 SLOTS = 4 # Number of "Colors" in the code [1,2,3,4] by default
 random.seed(os.urandom(32))  # create a seed so our "random results" are more consistent between plays
 
-class Mastermind(game):
+class Mastermind():
     def __init__(self):
         self.printMastermindLogo()
 
@@ -25,6 +26,11 @@ class Mastermind(game):
         self.currentGuess = []  # create an initial code for the genetic mutation to begin working with 
         self.guesses = []       # a list of attempted guesses and their respective result stored in tuple (guess,result)
         self.newGeneration = [] # a list of the new generation of guesses
+        self.startTime = time.time()
+        self.endTime = time.time()
+
+    def setEndTime(self):
+        self.endTime = time.time()
 
     def printMastermindLogo(self):
         print("\n __  __           _                      _           _ ")
@@ -186,10 +192,9 @@ class Mastermind(game):
         badNumbers = []
         for guess in self.guesses:
             if guess[1] == (0,0):
-                badNumbers.append(guess[0][0])
-                badNumbers.append(guess[0][1])
-                badNumbers.append(guess[0][2])
-                badNumbers.append(guess[0][3])
+                for i in range(0,SLOTS):
+                    badNumbers.append(guess[0][i])
+              
 
         allAvailableNumbers = self.Colors
         
@@ -199,8 +204,11 @@ class Mastermind(game):
                 allAvailableNumbers.remove(num)
 
         if round == 1 and self.guesses[0][1] == (0,4):
-            population = [[random.randint(self.guesses[0][0][0],self.guesses[0][0][1],self.guesses[0][0][2],self.guesses[0][0][3]) for i in range(SLOTS)]\
-                                   for j in range(popSize)]
+            listOfNums = [(self.guesses[0][0][i]) for i in range(SLOTS)]
+            # population = [[random.randint(self.guesses[0][0][0],self.guesses[0][0][1],self.guesses[0][0][2],self.guesses[0][0][3]) for i in range(SLOTS)]\
+            #                        for j in range(popSize)]
+            population = [[random.choice(listOfNums) for i in range(SLOTS)]\
+                                    for j in range(popSize)]
         else:
             population = [[random.choice(allAvailableNumbers) for i in range(SLOTS)]\
                                    for j in range(popSize)]
@@ -307,10 +315,25 @@ class Mastermind(game):
 
     def updateCurrentGuess(self):
         self.currentGuess = self.newGeneration.pop()
-
+    
+    def updateCurrentGuessExtra(self):
+        print("updateCurrentGuessExtra")
+        # listOfNums = [(self.currentGuess[i]) for i in range(SLOTS)]
+        # population = [[random.randint(self.guesses[0][0][0],self.guesses[0][0][1],self.guesses[0][0][2],self.guesses[0][0][3]) for i in range(SLOTS)]\
+        #                        for j in range(popSize)]
+        self.currentGuess = [random.choice(self.currentGuess) for i in range(SLOTS)]
+        
     def removeDuplicates(self):
-        while self.currentGuess in [c for (c, r) in self.guesses]:
-            self.updateCurrentGuess()    
+        run = True
+        while run and self.currentGuess in [c for (c, r) in self.guesses]:
+            print("removeDuplicates")
+            if self.newGeneration:
+                self.updateCurrentGuess()
+            else:
+                self.updateCurrentGuessExtra()
+                run = False
+                
+
     
     def lenColors(self):
             
@@ -322,8 +345,8 @@ class Mastermind(game):
             self.Colors.extend(range(1, int(inp) + 1))
             self.getFirstGuess()
     
-    def autoLenColors(self):
-            self.Colors.extend(range(1, int(6) + 1))
+    def autoLenColors(self, numbColors):
+            self.Colors.extend(range(1, int(numbColors) + 1))
             self.getFirstGuess()
             
 
@@ -369,43 +392,108 @@ def GenerateRandomCode(mastmindGame):
     return [random.randint(1, len(mastmindGame.Colors)) for i in range(SLOTS)]
 
 if __name__ == '__main__':
-    workbook = exelWriter.Workbook('100TestMastermind.xlsx')
-    testWorkSheet = workbook.add_worksheet(name='100test')
 
-    testWorkSheet.write(0, 0, 'Code')
-    testWorkSheet.write(0, 1, 'Number of Turns')
+    runTimeValue = 50
 
-    for n in range(1, 100):
-        mastermindGame = Mastermind()
-        mastermindGame.autoLenColors()
+    workbook = exelWriter.Workbook('data/50TestMastermind.xlsx')
 
-        codeToFind = GenerateRandomCode(mastermindGame)
+    for i in range(5, 11):
+        testWorkSheet = workbook.add_worksheet(name= str(i) +' Colors Fixed 4 slots')
 
-        print("Code #", n, " code to geuss: ", codeToFind, "\n")
-
-        testWorkSheet.write(n, 0, str(codeToFind))
-
-        random.seed(os.urandom(32))
-
-        result = mastermindGame.autoPlay(codeToFind)
+        testWorkSheet.write(0, 0, 'Code')
+        testWorkSheet.write(0, 1, 'Number of Turns')
+        testWorkSheet.write(0, 2, 'Run Time')
+        testWorkSheet.write(0, 5, 'Avg Run Time')
+        testWorkSheet.write(1, 5, '=AVERAGE(C2:C50)')
+        testWorkSheet.write(0, 6, 'Avg Runs')
+        testWorkSheet.write(1, 6, '=AVERAGE(B2:B50)')
 
 
-        while result != (SLOTS,0):
-            print("result: ", result)
-            mastermindGame.geneticEvolution(MAX_POP_SIZE, MAX_GENERATIONS)
+        for n in range(1, runTimeValue):
+            mastermindGame = Mastermind()
+            mastermindGame.autoLenColors(i)
 
-            while len(mastermindGame.newGeneration) == 0:
-                print('is 0')
-                mastermindGame.geneticEvolution(MAX_POP_SIZE*2, MAX_GENERATIONS/2)
+            codeToFind = GenerateRandomCode(mastermindGame)
 
-            mastermindGame.updateCurrentGuess()
+            print("Code #", n, " code to geuss: ", codeToFind, "\n")
 
-            mastermindGame.removeDuplicates()
+            testWorkSheet.write(n, 0, str(codeToFind))
+
+            random.seed(os.urandom(32))
 
             result = mastermindGame.autoPlay(codeToFind)
 
-            print(codeToFind, " ", mastermindGame.currentGuess)
 
-        testWorkSheet.write(n, 1, mastermindGame.turn)
+            while result != (SLOTS,0):
+                print("result: ", result)
+                mastermindGame.geneticEvolution(MAX_POP_SIZE, MAX_GENERATIONS)
 
+                while len(mastermindGame.newGeneration) == 0:
+                    print('is 0')
+                    mastermindGame.geneticEvolution(MAX_POP_SIZE*2, MAX_GENERATIONS/2)
+
+                mastermindGame.updateCurrentGuess()
+
+                mastermindGame.removeDuplicates()
+
+                result = mastermindGame.autoPlay(codeToFind)
+
+                print(codeToFind, " ", mastermindGame.currentGuess)
+
+            mastermindGame.setEndTime()
+
+            testWorkSheet.write(n, 1, mastermindGame.turn)
+            testWorkSheet.write(n, 2, (mastermindGame.endTime - mastermindGame.startTime))
+
+    for i in range(2, 7):
+        SLOTS = i
+        numbColors = 6
+
+        testWorkSheet = workbook.add_worksheet(name= str(i) + ' Slots Fixed 6 Colors')
+
+        testWorkSheet.write(0, 0, 'Code')
+        testWorkSheet.write(0, 1, 'Number of Turns')
+        testWorkSheet.write(0, 2, 'Run Time')
+        testWorkSheet.write(0, 5, 'Avg Run Time')
+        testWorkSheet.write(1, 5, '=AVERAGE(C2:C50)')
+        testWorkSheet.write(0, 6, 'Avg Runs')
+        testWorkSheet.write(1, 6, '=AVERAGE(B2:B50)')
+
+        for n in range(1, runTimeValue):
+            mastermindGame = Mastermind()
+            mastermindGame.autoLenColors(numbColors)
+
+            codeToFind = GenerateRandomCode(mastermindGame)
+
+            print("Code #", n, " code to geuss: ", codeToFind, "\n")
+
+            testWorkSheet.write(n, 0, str(codeToFind))
+
+            random.seed(os.urandom(32))
+
+            result = mastermindGame.autoPlay(codeToFind)
+
+
+            while result != (SLOTS,0):
+                print("result: ", result)
+                mastermindGame.geneticEvolution(MAX_POP_SIZE, MAX_GENERATIONS)
+
+                while len(mastermindGame.newGeneration) == 0:
+                    print('is 0')
+                    mastermindGame.geneticEvolution(MAX_POP_SIZE*2, MAX_GENERATIONS/2)
+
+                mastermindGame.updateCurrentGuess()
+
+                mastermindGame.removeDuplicates()
+
+                result = mastermindGame.autoPlay(codeToFind)
+
+                print(codeToFind, " ", mastermindGame.currentGuess)
+
+            mastermindGame.setEndTime()
+
+            testWorkSheet.write(n, 1, mastermindGame.turn)
+            testWorkSheet.write(n, 2, (mastermindGame.endTime - mastermindGame.startTime))
+
+    
     workbook.close()
