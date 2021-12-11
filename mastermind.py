@@ -1,18 +1,16 @@
 import os
 import random
 from os import system
+# Note this version of the code is designed to optimally run with the base version of the game (4 SLOTS) changing
+# this parameter may produce longer runtimes. The number of colors can be adjusted from 2-10
 
-# NOTE: This version of our Program will only work with the orignial game rules and settings. This means that the slot numeber WILL ALWAYS be equal to 4 and SHOULD NOT be changed.
-#       The Number of colors that can be play with are ranged from 2 - 10.
-
-
-MAX_POP_SIZE = 60                           # MAX number of valid candidates generated before Genetic evolution stops
-MAX_GENERATIONS = 100                       # MAX number of generations to create children before evolution stops
-CROSSOVER_PROBABILITY = 0.7                 # if random.random() returns > 0.7 , we will do a crossover on two parents
-CROSSOVER_THEN_MUTATION_PROBABILITY = 0.03  # if random.random() returns < 0.03 , we will do a crossover on two parents and then mutate the child
-PERMUTATION_PROBABILITY = 0.03              # if random.random() returns > 0.03 , we will do a permutation of the parent code
-SLOTS = 4                                   # Number of "Colors" in the code [1,2,3,4] by default 
-random.seed(os.urandom(32))                 # create a seed so our "random results" are more consistent between plays
+MAX_POP_SIZE = 75                     # MAX number of valid candidates generated before Genetic evolution stops
+MAX_GENERATIONS = 100                 # MAX number of generations to create children before evolution stops
+CROSSOVER = .8                        # if random.random() returns > 0.8 , do a crossover between two parents
+CROSSOVER_MUTATE = 0.05               # if random.random() returns < 0.05 , do a crossover and then mutate the child
+PERMUTATION = 0.025                   # if random.random() returns > 0.025 , do a permutation of the parent code
+SLOTS = 4                             # Number of "Colors" in the code [_, _, _, _] 4 by default
+random.seed(os.urandom(32))           # create a seed so our "random results" are more consistent between plays
 
 class Mastermind():
     def __init__(self):
@@ -136,12 +134,12 @@ class Mastermind():
     def crossover(self, code1, code2):
         
         # crossover takes the parents (code1 and code2) and crosses their genetics with eachother 
-        # if the random.random() generates a value greater than the current CROSSOVER_PROBABILITY it will pull a gene
+        # if the random.random() generates a value greater than the current CROSSOVER it will pull a gene
         # from code1, else it will pull from code2. This will be done SLOTS times, which will then return the newcode.
         
         newcode = []
         for i in range(SLOTS):
-            if random.random() > CROSSOVER_PROBABILITY:
+            if random.random() > CROSSOVER:
                 newcode.append(code1[i])
             else:
                 newcode.append(code2[i])
@@ -162,7 +160,7 @@ class Mastermind():
 
     def permute(self, code):
         for i in range(SLOTS):
-            if random.random() <= PERMUTATION_PROBABILITY:
+            if random.random() <= PERMUTATION:
                 firstRandomPosition = random.randint(0, SLOTS-1)
                 secondRandomPosition = random.randint(0, SLOTS-1)
 
@@ -175,13 +173,15 @@ class Mastermind():
 
     def geneticEvolution(self, popSize, generations):
         
-        
         # We generate the first population of chromosomes, in a randomized way
         # in order to reduce probability of duplicates
-        # we create a new list to hold our children called "sons" who will inherit from the parent codes
-        # generation using a natural selection strategy that is randomly selected.
-        
-        
+        # we create a new list to hold our children called "sons" who will be modified
+        # These sons are modified over and over, generations times.
+        # through each iteration, up until we reach our max pop size we score our sons individually
+        # and add the sons with the score = 0 to a list of eligibles. This list of eligibles
+        # is then sorted at the end of generations, and the first entry in the list is the "best" candidate which
+        # is the move returned by the AI
+
         # Generate a list of Number we know are not correct
         badNumbers = []
         for guess in self.guesses:
@@ -219,8 +219,8 @@ class Mastermind():
                         # Apply cross over
                         son = self.crossover(population[i], population[i+1])
 
-                        # Apply mutation after cross over if random.random() returns a value < .03
-                        if random.random() <= CROSSOVER_THEN_MUTATION_PROBABILITY:
+                        # Apply mutation after cross over if random.random() returns a value < .05
+                        if random.random() <= CROSSOVER_MUTATE:
                                 son = self.mutate(son, allAvailableNumbers)
 
                         # Apply permutation individually from any parameter requirements
@@ -229,7 +229,7 @@ class Mastermind():
                         # Add the genetically modified son to the population
                         sons.append(son)
 
-                # We link each son to a fitness score.
+                # We link each son to a fitness score. we call this new list the population with a score
                 popScore = []
                 for son in sons:
                     popScore.append((self.fitnessScore(son, self.currentGuess, self.guesses), son))
